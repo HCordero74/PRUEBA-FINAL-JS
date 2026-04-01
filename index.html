@@ -49,7 +49,7 @@
         let myChart;
         const getMonedas = async()=>{
             try{
-                const res = await fetch ("https://mindicador.cl/api");
+                const res = await fetch (`https://corsproxy.io/?https://mindicador.cl/api/${moneda}`);
                 const data = await res.json();
                 let monedas = {
                     dolar: data.dolar.valor,
@@ -65,9 +65,9 @@
 
         async function getHistorial(moneda) {
     try {
-        const res = await fetch(`https://mindicador.cl/api/${moneda}`);
+        const res = await fetch(`https://corsproxy.io/?https://mindicador.cl/api/${moneda}`);
         const data = await res.json();
-        // Tomamos los últimos 10 registros y los invertimos para que el gráfico vaya de pasado a presente
+        // Se invierten los últimos 10 registros para que vayan de presente a pasado
         const ultimosDiez = data.serie.slice(0, 10).reverse();
         
         return {
@@ -79,11 +79,11 @@
     }
 }
 
-// 4. Función para renderizar el gráfico
+// Función para renderizar el gráfico
 function renderGrafico(datos, nombreMoneda) {
     const ctx = document.getElementById('myChart').getContext('2d');
     
-    // Si ya existe un gráfico previo, lo destruimos para que no se sobrepongan
+    // Se elimina el gráfico antiguo para que no se sobreponga al nuevo
     if (myChart) {
         myChart.destroy();
     }
@@ -113,7 +113,7 @@ function renderGrafico(datos, nombreMoneda) {
     });
 }
 
-// 5. Evento Principal del Botón
+// Evento Principal del Botón
 button.addEventListener("click", async () => {
     const monto = parseFloat(input.value);
     const monedaSeleccionada = select.value;
@@ -123,7 +123,7 @@ button.addEventListener("click", async () => {
         return;
     }
 
-    // Obtener valores actuales y calcular
+    // Se obtienen los valores actuales y se reliza el cálculo
     const valoresApi = await getMonedas();
     let conversion = 0;
     let simbolo = "";
@@ -141,7 +141,7 @@ button.addEventListener("click", async () => {
 
     resultado.textContent = `Resultado: ${conversion.toFixed(2)} ${simbolo}`;
 
-    // Cargar y mostrar el gráfico
+    // Se carga y se muestra el gráfico
     const datosHistorial = await getHistorial(monedaSeleccionada);
     if (datosHistorial) {
         renderGrafico(datosHistorial, monedaSeleccionada);
