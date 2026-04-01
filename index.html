@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor de Monedas</title>
+    <link rel="stylesheet" href="./asset/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <hr>
+            <br>
+                <h1>Conversor de Monedas Nacional</h1>
+            <br>
+        <hr>
+    </header>
+    <section class="main-container">
+        <div class="card">
+            <h2>Pesos CLP</h2>
+            
+            <div class="cont-2">
+                <input type="number" id="monto" placeholder="Ingrese el monto en CLP" min="0" oninput="if(this.value<0)this.value=0">
+            </div>
+            <br>
+            <h4>Moneda a convertir:</h4>
+            
+            <select name="moneda" id="moneda" class="select-moneda">
+                <option value="" disabled selected>Seleccione moneda</option>
+                <option value="dolar">Dólar</option>
+                <option value="euro">Euro</option>
+                <option value="uf">Uf</option>
+            </select>
+
+            <button id="convertButton" class="btn-buscar">Buscar</button>
+            <br>
+            <br>
+            <div id="resultado">...</div>
+            <div class="grafico-container">
+            <canvas id="myChart"></canvas>
+        </div>
+        </div>
+    </section> 
+    <script>
+        const input= document.getElementById("monto");
+        const button= document.getElementById("convertButton");
+        const resultado= document.getElementById("resultado");
+        const select = document.getElementById("moneda");
+        let myChart;
+        const getMonedas = async()=>{
+            try{
+                const res = await fetch ("https://mindicador.cl/api");
+                const data = await res.json();
+                let monedas = {
+                    dolar: data.dolar.valor,
+                    euro: data.euro.valor,
+                    uf: data.uf.valor,
+                }
+                return monedas;
+            } catch (error){
+                console.log(error);
+                resultado.textContent = "Error al conectar con la API";
+            }
+        };
+
+        async function getHistorial(moneda) {
+    try {
+        const res = await fetch(`https://mindicador.cl/api/${moneda}`);
+        const data = await res.json();
+        // Tomamos los últimos 10 registros y los invertimos para que el gráfico vaya de pasado a presente
+        const ultimosDiez = data.serie.slice(0, 10).reverse();
+        
+        return {
+            labels: ultimosDiez.map(dia => dia.fecha.split('T')[0]),
+            valores: ultimosDiez.map(dia => dia.valor)
+        };
+    } catch (error) {
+        console.error("Error al obtener historial:", error);
+    }
+}
+
+// 4. Función para renderizar el gráfico
+function renderGrafico(datos, nombreMoneda) {
+    const ctx = document.getElementById('myChart').getContext('2d');
+    
+    // Si ya existe un gráfico previo, lo destruimos para que no se sobrepongan
+    if (myChart) {
+        myChart.destroy();
+    }
+
+    myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: datos.labels,
+            datasets: [{
+                label: `Historial últimos 10 días (${nombreMoneda.toUpperCase()})`,
+                data: datos.valores,
+                borderColor: '#00d1ff',
+                backgroundColor: 'rgba(0, 209, 255, 0.1)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            scales: {
+                y: { beginAtZero: false },
+                x: { ticks: { color: 'white' } }
+            },
+            plugins: {
+                legend: { labels: { color: 'white' } }
+            }
+        }
+    });
+}
+
+// 5. Evento Principal del Botón
+button.addEventListener("click", async () => {
+    const monto = parseFloat(input.value);
+    const monedaSeleccionada = select.value;
+
+    if (!monto || !monedaSeleccionada) {
+        alert("Por favor ingresa un monto y selecciona una moneda");
+        return;
+    }
+
+    // Obtener valores actuales y calcular
+    const valoresApi = await getMonedas();
+    let conversion = 0;
+    let simbolo = "";
+
+    if (monedaSeleccionada === "dolar") {
+        conversion = monto / valoresApi.dolar;
+        simbolo = "USD";
+    } else if (monedaSeleccionada === "euro") {
+        conversion = monto / valoresApi.euro;
+        simbolo = "EUR";
+    } else if (monedaSeleccionada === "uf") {
+        conversion = monto / valoresApi.uf;
+        simbolo = "UF";
+    }
+
+    resultado.textContent = `Resultado: ${conversion.toFixed(2)} ${simbolo}`;
+
+    // Cargar y mostrar el gráfico
+    const datosHistorial = await getHistorial(monedaSeleccionada);
+    if (datosHistorial) {
+        renderGrafico(datosHistorial, monedaSeleccionada);
+    }
+});
+
+        button.addEventListener("click", async () => {
+            const valorDolar = await getMonedas();
+            const monedaSeleccionada = select.value;
+            const monto = input.value;
+            console.log(monedaSeleccionada);
+            console.log(valorDolar);
+            if (monedaSeleccionada === "dolar") {
+                resultado.textContent = (monto / valorDolar.dolar).toFixed(2) + " USD";
+            } else if (monedaSeleccionada === "euro") {
+                resultado.textContent = (monto / valorDolar.euro).toFixed(2) + " EUR";
+            } else if (monedaSeleccionada === "uf") {
+                resultado.textContent = (monto / valorDolar.uf).toFixed(2) + " Uf";
+        }
+    })
+
+    </script>
+</body>
+</html>
